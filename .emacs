@@ -72,3 +72,12 @@
 ;; use shift + arrow to navigate windows
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
+
+;; shared copy paste
+(setq x-select-enable-clipboard t)
+
+;; recentf stuff
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+(global-set-key "\C-x\ \C-r" 'recentf-open-files)
