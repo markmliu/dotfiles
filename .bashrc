@@ -16,8 +16,8 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=1000000
+HISTFILESIZE=2000000
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -113,5 +113,33 @@ if ! shopt -oq posix; then
   fi
 fi
 
-EDITOR=emacs
-P4EDITOR=emacs
+# update bash history immediately
+shopt -s histappend
+PROMPT_COMMAND="history -a; history -n"
+
+
+# use gqui tab-complete for fileutil.
+complete -o nospace -C 'G_COMP_WORDBREAKS="${COMP_WORDBREAKS}" \
+GQUI_CLI_FILEUTIL_MODE=1 GQUI_CLI_SOCKET=~/.gqui/fileutil-tab \
+/usr/bin/cli-client-gqui COMPLETE' fileutil
+
+
+export EDITOR=emacs
+export P4EDITOR=emacs
+
+export TERM=screen-256color
+
+# add timestamp to terminal commands
+ export PS1="[\$(date +%k:%M:%S)] $PS1"
+
+# Fix SSH_AUTH_SOCK problem for tmux
+_ssh_auth_save() {
+    ln -sf "$SSH_AUTH_SOCK" "$HOME/.ssh/ssh-auth-sock.$HOSTNAME"
+}
+alias tmux='_ssh_auth_save ; export HOSTNAME=$(hostname) ; tmux'
+
+# Set the Hi status to be displayed as part of the prompt. #!>>HI<<!#
+PS1="\[\${__hi_prompt_color}\]\${__hi_prompt_text}\[${__hi_NOCOLOR}\]${PS1}" #!>>HI<<!#
+# Set the default values for the text of the hi prompt. Change these if you like. #!>>HI<<!#
+__hi_on_prompt="[hi on] " #!>>HI<<!#
+__hi_off_prompt="[hi off]" #!>>HI<<!#
