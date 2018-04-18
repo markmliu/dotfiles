@@ -68,7 +68,6 @@
 (ad-activate 'split-window-horizontally)
 
 ;; load from ~/.emacs.d/lisp/
-(load "~/.emacs.d/lisp/google.el")
 (load "~/.emacs.d/lisp/modern-cpp-font-lock.el")
 
 ;; use shift + arrow to navigate windows
@@ -85,6 +84,9 @@
 (global-set-key "\C-x\ \C-r" 'recentf-open-files)
 
 ;; help install evil mode
+;; On a fresh emacs, will need to run the following commands:
+;; M-x package-refresh-contents
+;; M-x package-install RET evil
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
 (package-initialize)
@@ -96,9 +98,6 @@
 (define-key evil-normal-state-map (kbd "C-k") 'evil-window-down)
 (define-key evil-normal-state-map (kbd "C-i") 'evil-window-up)
 (define-key evil-normal-state-map (kbd "C-l") 'evil-window-right)
-
-;; pyformat
-(require 'google-pyformat)
 
 (require 'modern-cpp-font-lock)
 (modern-c++-font-lock-global-mode t)
