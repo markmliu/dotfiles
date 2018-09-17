@@ -279,10 +279,10 @@
     )
 
 ;; flycheck
-(add-hook 'after-init-hook #'global-flycheck-mode)
+;; (add-hook 'after-init-hook #'global-flycheck-mode)
 
 
-(add-hook 'c++-mode-hook 'rtags-start-process-unless-running)
+;; (add-hook 'c++-mode-hook 'rtags-start-process-unless-running)
 
 ;; cruise specific
 ;; Create C++ style for Cruise
