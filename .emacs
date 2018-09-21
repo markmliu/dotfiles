@@ -1,15 +1,33 @@
 ;; Requires installation of following packages:
 ;; - modern-cpp-font-lock.el
 ;; - evil
-;; - rtags
-;; - helm
+;; - ctags-exuberant
 ;; Prevent the cursor from blinking
 
-;;(add-to-list 'package-archives
-;;             '("MELPA Stable" . "http://stable.melpa.org/packages/") t)
-;;(package-initialize)
-;;(package-refresh-contents)
-;;(package-install 'helm)
+
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
+(add-to-list 'package-archives
+             '("MELPA Stable" . "http://stable.melpa.org/packages/") t)
+(package-initialize)
+(package-refresh-contents)
+(package-install 'helm)
+(package-install 'projectile)
+(package-install 'evil)
+(package-install 'magit)
+(package-install 'company)
+(package-install 'xcscope)
+(package-install 'clang-format)
+(package-install 'flycheck)
+
+;; Cscope
+(require 'xcscope)
+(cscope-setup)
+(add-hook 'c++-mode-hook 'cscope-minor-mode)
+
+;; Magit
+(global-set-key (kbd "C-x g") 'magit-status)
+(global-magit-file-mode 1)
 
 (blink-cursor-mode 0)
 (setq initial-scratch-message "")
@@ -37,7 +55,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(initial-frame-alist (quote ((fullscreen . maximized))))
- '(package-selected-packages (quote (modern-cpp-font-lock evil))))
+ '(package-selected-packages
+   (quote
+    (flycheck clang-format clang-format-before-save xcscope company company-mode magit projectile helm modern-cpp-font-lock evil))))
 
 ;; default window splitting side-by-side
 (setq split-height-threshold nil)
@@ -80,7 +100,7 @@
 (ad-activate 'split-window-horizontally)
 
 ;; load from ~/.emacs.d/lisp/
-(load "~/.emacs.d/lisp/modern-cpp-font-lock.el")
+;; (load "~/.emacs.d/lisp/modern-cpp-font-lock.el")
 
 ;; use shift + arrow to navigate windows
 (when (fboundp 'windmove-default-keybindings)
@@ -95,13 +115,6 @@
 (setq recentf-max-menu-items 25)
 (global-set-key "\C-x\ \C-r" 'recentf-open-files)
 
-;; help install evil mode
-;; On a fresh emacs, will need to run the following commands:
-;; M-x package-refresh-contents
-;; M-x package-install RET evil
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-(package-initialize)
 
 (require 'evil)
 ;; (evil-mode 1)
@@ -171,22 +184,26 @@
 
 ;; rtags
 ;; (require 'rtags)
-(load "~/rtags/src/rtags.el")
+;; (load "~/rtags/src/rtags.el")
 
 (require 'helm)
-(setq rtags-use-helm t)
+;; (setq rtags-use-helm t)
 ;; install standard rtags keybindings. Do M-. on the symbol below to
 ;; jump to definition and see the keybindings.
-(rtags-enable-standard-keybindings)
+;; (rtags-enable-standard-keybindings)
 
-(setq rtags-path "~/rtags/bin")
+;; (setq rtags-path "~/rtags/bin")
 ;; (global-set-key "\C-x\ \C-g" 'rtags-find-symbol-at-point)
-(global-set-key (kbd "M-.") nil)
-(define-key c-mode-base-map (kbd "M-.")
-  (function rtags-find-symbol-at-point))
-(global-set-key (kbd "M-,") nil)
-(define-key c-mode-base-map (kbd "M-,")
-  (function rtags-find-references-at-point))
+;; (global-set-key (kbd "M-.") nil)
+;; (define-key c-mode-base-map (kbd "M-.")
+;;   (function rtags-find-symbol-at-point))
+;; (global-set-key (kbd "M-,") nil)
+;; (define-key c-mode-base-map (kbd "M-,")
+;;   (function rtags-find-references-at-point))
+
+;; projectile
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 ;; fix for tmux
 (if (getenv "TMUX")
@@ -279,8 +296,9 @@
     )
 
 ;; flycheck
-;; (add-hook 'after-init-hook #'global-flycheck-mode)
-
+(add-hook 'after-init-hook #'global-flycheck-mode)
+(add-hook 'c++-mode-hook (lambda () (setq flycheck-clang-language-standard "c++11")))
+(add-hook 'c++-mode-hook (lambda () (setq flycheck-gcc-language-standard "c++11")))
 
 ;; (add-hook 'c++-mode-hook 'rtags-start-process-unless-running)
 
@@ -293,3 +311,19 @@
 
 ;; Enable xml-mode for ROS launch files
 (add-to-list 'auto-mode-alist '("\\.launch\\'" . nxml-mode))
+
+;; path to ctags
+(setq path-to-ctags "/usr/bin/ctags-exuberant")
+
+(defun create-tags (dir-name)
+  "Create tags file."
+  (interactive "DDirectory: ")
+  (shell-command
+   (format "%s -f TAGS -e -R %s" path-to-ctags (directory-file-name dir-name)))
+)
+
+(require 'company)
+(add-hook 'after-init-hook 'global-company-mode)
+;; This won't work until you have a clang executable to use.
+
+;; figure out how to use helm mode also.
