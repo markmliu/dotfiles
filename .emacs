@@ -19,6 +19,7 @@
 (package-install 'xcscope)
 (package-install 'clang-format)
 (package-install 'flycheck)
+(package-install 'modern-cpp-font-lock)
 
 ;; Cscope
 (require 'xcscope)
