@@ -8,3 +8,6 @@
 ## FZF
 `brew install fzf`  
 `$(brew --prefix)/opt/fzf/install`
+
+## MISC
+`git config --global core.editor "emacs"`
