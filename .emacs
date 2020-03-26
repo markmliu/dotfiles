@@ -328,3 +328,22 @@
 ;; This won't work until you have a clang executable to use.
 
 ;; figure out how to use helm mode also.
+
+;; Github link buffer-file-name
+(require 'browse-url)
+(defun github-link ()
+  "Todo documentation."
+  (interactive)
+  (defvar embark-github-base "https://github.com/embarktrucks/brain/blob/dev/")
+  (defvar embark-github-relative-filepath)
+  (defvar embark-github-url)
+  (defvar embark-github-line-num)
+
+  (setq embark-github-relative-filepath (string-remove-prefix "/home/embark/brain/" buffer-file-name))
+  (setq embark-github-line-num (number-to-string (line-number-at-pos)))
+  (setq embark-github-url (concat embark-github-base embark-github-relative-filepath "#" embark-github-line-num))
+  (browse-url embark-github-url)
+)
+
+(provide '.emacs)
+;;; .emacs ends here
