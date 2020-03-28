@@ -341,7 +341,7 @@
 
   (setq embark-github-relative-filepath (string-remove-prefix "/home/embark/brain/" buffer-file-name))
   (setq embark-github-line-num (number-to-string (line-number-at-pos)))
-  (setq embark-github-url (concat embark-github-base embark-github-relative-filepath "#" embark-github-line-num))
+  (setq embark-github-url (concat embark-github-base embark-github-relative-filepath "#L" embark-github-line-num))
   (browse-url embark-github-url)
 )
 
