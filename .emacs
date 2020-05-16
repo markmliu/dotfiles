@@ -58,7 +58,7 @@
  '(initial-frame-alist (quote ((fullscreen . maximized))))
  '(package-selected-packages
    (quote
-    (flycheck clang-format clang-format-before-save xcscope company company-mode magit projectile helm modern-cpp-font-lock evil))))
+    (go-mode flycheck clang-format clang-format-before-save xcscope company company-mode magit projectile helm modern-cpp-font-lock evil))))
 
 ;; default window splitting side-by-side
 (setq split-height-threshold nil)
