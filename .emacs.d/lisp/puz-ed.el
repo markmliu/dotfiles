@@ -139,6 +139,112 @@
     ;;;(print test-crossword)
     ))
 
+(defun crossword-update-display (crossword)
+  "Called after a change, keep display up with CROSSWORD."
+  (let* ((coords (crossword-cursor-coords))
+	 (cousin-coords (crossword-cousin-position (car coords) (cdr coords))))
+    (save-excursion
+      (crossword-place-cursor (car coords)
+			      (cdr coords))
+      (delete-char 2)
+      (crossword-insert-cell (crossword-ref crossword (car coords) (cdr coords)))
+      (crossword-place-cursor (car cousin-coords)
+			      (cdr cousin-coords))
+      (delete-char 2)
+      (crossword-insert-cell (crossword-ref crossword (car cousin-coords) (cdr cousin-coords))))))
+
+;;; Assumes a buffer-local variable "crossword-grid"
+(defun crossword-erase-command ()
+  "Erase current crossword cell."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-clear-cell crossword-grid (car coords) (cdr coords)))
+  (crossword-update-display crossword-grid))
+
+(defun crossword-block-command ()
+  "Add block in current cell."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-store-block crossword-grid (car coords) (cdr coords)))
+  (crossword-update-display crossword-grid))
+
+(defun crossword-self-insert ()
+  "Self-insert letter into current cell."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-store-letter crossword-grid (car coords) (cdr coords) (aref (this-command-keys) 0)))
+  (crossword-update-display crossword-grid))
+
+;;; movement
+(defun crossword-cursor-right (arg)
+  "Move ARG cells to the right."
+  (interactive "p")
+  (let* ((coords (crossword-cursor-coords))
+	 (new-column (+ arg (cdr coords))))
+    (if (or (< new_column 0) (>= new_column (crossword-size crossword-grid)))
+	(error "Out of bound."))
+    (crossword-place-cursor (car coords) new-column)))
+
+(defun crossword-cursor-left (arg)
+  "Move ARG cells to the left."
+  (interactive "p")
+  (crossword-cursor-right (- arg)))
+
+(defun crossword-cursor-down (arg)
+  "Move ARG cells down."
+  (interactive "p")
+  (let* ((coords (crossword-cursor-coords))
+	 (new-row (+ arg (cdr coords))))
+    (if (or (< new-row 0) (>= new-row (crossword-size crossword-grid)))
+	(error "Out of bound."))
+    (crossword-place-cursor new-row (cdr coords))))
+
+(defun crossword-cursor-up (arg)
+  "Move ARG cells up."
+  (interactive "p")
+  (crossword-cursor-down (- arg)))
+
+(defun crossword-beginning-of-row ()
+  "Move to beginning of current row."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-place-cursor (car coords) 0)))
+
+(defun crossword-end-of-row ()
+  "Move to end of current row."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-place-cursor (car coords) (- (crossword-size crossword-grid) 1))))
+
+(defun crossword-top-of-column ()
+  "Move to top of current column."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-place-cursor 0 (cdr coords))))
+
+(defun crossword-bottom-of-column ()
+  "Move to bottom of current column."
+  (interactive)
+  (let ((coords (crossword-cursor-coords)))
+    (crossword-place-cursor (- (crossword-size crossword-grid) 1 )(cdr coords))))
+
+(defun crossword-beginning-of-grid ()
+  "Move to beginning of grid."
+  (interactive)
+  (crossword-place-cursor 0 0))
+
+(defun crossword-end-of-grid ()
+  "Move to end of grid."
+  (interactive)
+  (let ((end-index ( - (crossword-size crossword-grid) 1)))
+    (crossword-place-cursor end-index end-index)))
+
+
+
+
+
+
+
 ;;;(crossword-test)
 
 (provide 'puz-ed)
