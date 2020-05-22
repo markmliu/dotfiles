@@ -103,7 +103,7 @@
 
 (defun crossword-insert-grid (crossword)
   "Insert CROSSWORD into the current buffer."
-  (mapcar 'crossword-insert-row crossword))
+  (crossword-authorize (mapcar 'crossword-insert-row crossword)))
 
 ;;; Assumes crossword is drawn and begins at (point-min)
 (defun crossword-place-cursor (row column)
@@ -141,17 +141,18 @@
 
 (defun crossword-update-display (crossword)
   "Called after a change, keep display up with CROSSWORD."
-  (let* ((coords (crossword-cursor-coords))
-	 (cousin-coords (crossword-cousin-position (car coords) (cdr coords))))
-    (save-excursion
-      (crossword-place-cursor (car coords)
-			      (cdr coords))
-      (delete-char 2)
-      (crossword-insert-cell (crossword-ref crossword (car coords) (cdr coords)))
-      (crossword-place-cursor (car cousin-coords)
-			      (cdr cousin-coords))
-      (delete-char 2)
-      (crossword-insert-cell (crossword-ref crossword (car cousin-coords) (cdr cousin-coords))))))
+  (crossword-authorize
+   (let* ((coords (crossword-cursor-coords))
+	  (cousin-coords (crossword-cousin-position (car coords) (cdr coords))))
+     (save-excursion
+       (crossword-place-cursor (car coords)
+			       (cdr coords))
+       (delete-char 2)
+       (crossword-insert-cell (crossword-ref crossword (car coords) (cdr coords)))
+       (crossword-place-cursor (car cousin-coords)
+			       (cdr cousin-coords))
+       (delete-char 2)
+       (crossword-insert-cell (crossword-ref crossword (car cousin-coords) (cdr cousin-coords)))))))
 
 ;;; Assumes a buffer-local variable "crossword-grid"
 (defun crossword-erase-command ()
@@ -239,10 +240,98 @@
   (let ((end-index ( - (crossword-size crossword-grid) 1)))
     (crossword-place-cursor end-index end-index)))
 
+(defun crossword-jump-to-cousin ()
+  "Move to cousin index."
+  (interactive)
+  (let* ((coords (crossword-cursor-coords))
+	 (cousin-coords (crossword-cousin-position crossword-grid
+						   (car coords)
+						   (cdr coords))))
+    (crossword-place-cursor (car cousin-coords) (cdr cousin-coords))))
 
+;;; left unfinished for now
+(defun crossword (size)
+  "Create a new buffer with an empty crossword grid of SIZE."
+  (interactive "nGrid size: ")
+  (let* ((grid (make-crossword size))
+	 (buffer (generate-new-buffer "*Crossword*")))
+    (switch-to-buffer buffer)
+    (crossword-insert-grid grid)
+    (crossword--mode-setup grid)
+    ))
 
+(defun crossword-mode ()
+  "Major mode for editing crossword puzzles.
+Special commands:
+\\{crossword-mode-map}"
+  (interactive)
+  (crossword--mode-setup (crossword-parse-buffer))
 
+(defun crossword--mode-setup (grid)
+  "Auxiliary function to set up crossword mode, used by
+   crossword-mode and crossword functions"
+  (kill-all-local-variables)
+  (setq major-mode 'crossword-mode)
+  (setq mode-name "Crosword")
+  (use-local-map crossword-mode-map)
+  (make-local-variable 'crossword-grid)
+  (setq crossword-grid (grid))
+  (crossword-place-cursor 0 0)
+  run-hooks 'crossword-mode-hook)
 
+(defvar crossword-mode-map nil
+  "Keymap for Crossword mode.")
+(if crossword-mode-map nil
+  (setq crossword-mode-map (make-keymap))
+  (define-key crossword-mode-map [t] 'undefined)
+  (let ((equivs
+	 '((forward-char . crossword-cursor-right)
+	   (backward-char . crossword-cursor-left)
+	   (previous-line . crossword-cursor-up)
+	   (next-line . crossword-cursor-down)
+	   (beginning-of-line . crossword-beginning-of-row)
+	   (end-of-line . crossword-end-of-row)
+	   (beginning-of-buffer . crossword-beginning-of-grid)
+	   (end-of-buffer . crossword-end-of-grid))))
+    (while equivs
+      (substitute-key-definition (car (car equivs))
+				 (cdr (car equivs))
+				 crossword-mode-map
+				 (current-global-map))
+      (setq equivs (cdr equivs))))
+  (let ((letters
+	 '(?A ?B ?C ?D ?E ?F ?G ?H ?I ?J ?K ?L ?M
+           ?N ?O ?P ?Q ?R ?S ?T ?U ?V ?W ?X ?Y ?Z
+           ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m
+           ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)))
+    (while letters
+      (define-key crossword-mode-map (char-to-string (car letters)) 'crossword-self-insert)
+      (setq letters (cdr letters))))
+  (define-key crossword-mode-map " " 'crossword-erase-comand)
+  (define-key crossword-mode-map "#" 'crossword-block-command)
+  (define-key crossword-mode-map "\C-ct" 'crossword-top-of-column)
+  (define-key crossword-mode-map "\C-cb" 'crossword-bottom-of-column)
+  (define-key crossword-mode-map "\C-cc" 'crossword-jump-to-cousin)
+  )
+
+;;; track unauthorized changes
+(defvar crossword-changes-authorized nil
+  "Are changes currently authorized?")
+
+(make-variable-buffer-local 'crossword-changes-authorized)
+(defmacro crossword-authorize (&rest subexprs)
+  "Execute subexpression, authorizing changes."
+  '(let ((crossword-changes-authorized t))
+     ,@subexprs))
+
+(defun crossword-after-change-function (start end len)
+  "Recover if this change is unauthorized."
+  (if crossword-changes-authorized
+      nil
+    ; otherwise, recover somehow.
+    ))
+(make-local-hook 'after-change-functions)
+(add-hook 'after-change-functions
 
 
 ;;;(crossword-test)
