@@ -4,11 +4,6 @@
 ;;; Code:
 (require 'cl)
 
-(defun puz-mode()
-  "Major mode for reading and editing puz files."
-  (interactive)
-  (puz--mode-setup (puz-parse-buffer)))
-
 (defvar puz-header-spec
       '((cksum_gbl u16r)
 	(across_down str 11)
@@ -27,7 +22,7 @@
 	(puzzletype u16r)
 	(solution_state u16r)))
 
-(defun puz-parse-file(filePath)
+(defun puz-get-bytestring(filePath)
   "Helper for reading .puz FILEPATH into a unibyte string."
   (with-temp-buffer
     (insert-file-contents filePath)
@@ -38,10 +33,9 @@
 
 (cl-defstruct crossword-info header solution fill height width title author copyright clues)
 
-(defun puz-test(filePath)
-  "Test for running puz stuff."
-  (interactive "fFile name: ")
-  (let ((puz-content (puz-parse-file filePath))
+(defun puz-parse (filePath)
+  "Pull all crossword info out of .puz file at FILEPATH."
+  (let ((puz-content (puz-get-bytestring filePath))
 	(current-pos 0)
 	(puz-info (make-crossword-info :header nil :solution nil :fill nil :height 0 :width 0 :title "" :author "" :copyright "" :clues nil)))
     (setf (crossword-info-header puz-info) (bindat-unpack puz-header-spec puz-content))
@@ -59,11 +53,8 @@
       (incf current-pos (* (crossword-info-height puz-info) (crossword-info-width puz-info)))
       )
 
-    (print (crossword-info-solution puz-info))
-    (print (crossword-info-fill puz-info))
-    ;; solution stored in solution.raw
-    ;; fill stored in fill.raw
-
+    ;; (print (crossword-info-solution puz-info))
+    ;; (print (crossword-info-fill puz-info))
     (setq puz--read-and-inc (lambda ()
 			      (let ((next_null_pos current-pos)
 				    (string_so_far ""))
@@ -93,11 +84,80 @@
     puz-info
     ))
 
-;; (setq testvar (puz-test "test.puz"))
-;; (crossword-info-solution testvar)
+(setq testvar (puz-parse "test.puz"))
+(crossword-info-fill testvar)
 
+(defun puz-insert-fill (fill height width)
+  "Insert FILL into buffer, assuming cursor is at top of buffer and FILL is of size HEIGHT * WIDTH."
+  (let ((count 0)
+	(start-ind 0)
+	(end-ind width))
+    (while (< count height)
+      (insert (concat (substring fill start-ind end-ind) "\n"))
+      (incf start-ind width)
+      (incf end-ind width)
+      (incf count 1))))
 
+(defun puz-insert-clues (clues)
+  "Insert CLUES into buffer."
+  (while clues
+    (insert (concat (car clues) "\n"))
+    (setq clues (cdr clues))))
 
+;; have to define puz-forward-word and puz-backward-word
+(defun puz-forward-word ()
+  "In puz-solving buffer, move cursor forward to next valid word."
+  (interactive)
+  (while (not (eq (char-after (point)) ?.))
+    (forward-char))
+  (while (eq (char-after (point)) ?.)
+    (forward-char)))
+
+(defun puz-backward-word ()
+  "In puz-solving buffer, move cursor backward to next valid word."
+  (interactive)
+  (while (not (eq (char-before (point)) ?.))
+    (backward-char))
+  (while (eq (char-before (point)) ?.)
+    (backward-char)))
+
+(defvar puz-mode-map nil
+  "Keymap for puz mode.")
+(if puz-mode-map nil
+  (setq puz-mode-map (make-keymap))
+  (let ((equivs
+	 '((forward-word . puz-forward-word)
+	   (backward-word . puz-backward-word))))
+    (while equivs
+      (substitute-key-definition (car (car equivs))
+				 (cdr (car equivs))
+				 puz-mode-map
+				 (current-global-map))
+      (setq equivs (cdr equivs))))
+  )
+
+(defun puz-mode(filePath)
+  "Create a new buffer with graphical view of .puz file at FILEPATH."
+  (interactive "fFile name: ")
+  (kill-all-local-variables)
+  (setq mode-name "Crossword Solving")
+  (let ((puz-info (puz-parse filePath))
+	(grid-buffer (generate-new-buffer "*Grid*"))
+	(clues-buffer (generate-new-buffer "*Clues*")))
+
+    (delete-other-windows)
+    (switch-to-buffer grid-buffer)
+    (puz-insert-fill (crossword-info-fill puz-info)
+		     (crossword-info-height puz-info)
+		     (crossword-info-width puz-info))
+    (split-window-right)
+    (other-window 1)
+    (switch-to-buffer clues-buffer)
+    (puz-insert-clues (crossword-info-clues puz-info))
+    (other-window 1)
+    (use-local-map puz-mode-map)
+    ))
+;;(lookup-key (current-global-map) (kbd "M-b "))
 
 (provide 'puz-solver)
 ;;; puz-solver.el ends here
