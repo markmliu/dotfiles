@@ -2,6 +2,7 @@
 ;;; Commentary:
 
 ;;; Code:
+(require 'cl)
 
 (defun puz-mode()
   "Major mode for reading and editing puz files."
@@ -32,18 +33,63 @@
     (insert-file-contents filePath)
     (encode-coding-string (buffer-string) 'binary)))
 
+(defvar puz--read-and-inc nil
+  "Used to store a closure for reading and incrementing.")
+
 (defun puz-test(filePath)
   "Test for running puz stuff."
   (interactive "fFile name: ")
-  (let ((puzContents (puz-parse-file filePath))
+  (let ((puz-content (puz-parse-file filePath))
 	(header nil)
 	(solution nil)
 	(fill nil)
-	(current-pos 0))
-    (setq header (bindat-unpack puz-header-spec puzContents))
-    (print header)
-    ;(print puzContents)
+	(current-pos 0)
+	(height 0)
+	(width 0)
+	(title "")
+	(author "")
+	(copyright ""))
+    (setq header (bindat-unpack puz-header-spec puz-content))
+    (setq current-pos (bindat-length puz-header-spec header))
+    (setq height (cdr (assoc 'height header)))
+    (setq width (cdr (assoc 'width header)))
+    (let ((solution-spec (list (list 'raw 'str (* height width)))))
+      ;; read the solution and advance current-pos
+      (setq solution (bindat-unpack solution-spec puz-content current-pos))
+      (incf current-pos (* height width ))
+      ;; read the fill and advance current-pos
+      (setq fill (bindat-unpack solution-spec puz-content current-pos))
+      (incf current-pos (* height width ))
+      )
+
+    (print solution)
+    (print fill)
+    ;; solution stored in solution.raw
+    ;; fill stored in fill.raw
+
+    (setq puz--read-and-inc (lambda ()
+			      (let ((next_null_pos current-pos)
+				    (string_so_far ""))
+				(while (not (eq
+					     (aref (substring puz-content next_null_pos (+ 1 next_null_pos)) 0)
+					     0))
+				  (setq string_so_far
+					(concat string_so_far
+						(substring puz-content next_null_pos (+ 1 next_null_pos))))
+				  (incf next_null_pos 1))
+				(setq current-pos (+ next_null_pos 1))
+				string_so_far
+				)))
+
+    (setq title (funcall puz--read-and-inc))
+    (setq author (funcall puz--read-and-inc))
+    (setq copyright (funcall puz--read-and-inc))
+
+    (print title)
+    (print author)
+    (print copyright)
     ))
+
 
 
 
