@@ -4,6 +4,58 @@
 ;;; Code:
 (require 'cl)
 
+(defun current-line ()
+  "Return line number containing point."
+  (let ((result 1)) ;Emacs counts starting from 1
+    (save-excursion
+      (beginning-of-line)
+      (while (not (bobp))
+	(forward-line -1)
+	(setq result (+ result 1))))
+    result))
+
+(defun puz-cursor-coords ()
+  "Compute (ROW . COLUMN) from cursor position."
+  (cons (- (current-line) 1) (current-column) ))
+
+(defun puz-cursor-index (width)
+  "Compute index from cursor position for grid of WIDTH."
+  (+ (* (current-line) width) (current-column)))
+
+(defun puz-col (index width)
+  "Compute column, given INDEX into fill and WIDTH."
+  (mod index width))
+
+(defun puz-row (index width)
+  "Compute row, given INDEX into fill and WIDTH."
+  (/ index width))
+
+(defun puz-is-blacksquare (c)
+  "Return whether C represents a black square."
+  (interactive)
+  (eq c ?.))
+
+(defun puz-grid-at-index (index grid)
+  "Compute value of GRID at INDEX."
+  (aref grid index))
+
+(defun puz-length-across (index grid width)
+  "Compute length of an across clue starting from INDEX for GRID of WIDTH."
+  (let ((len-so-far 0) ;length of clue
+	(cur-col (puz-col index width))
+	(cur-char nil)
+	(reached nil)); whether we've reached a black square yet)
+    (print grid)
+    (while (and (<= cur-col width) (not reached))
+      (setq cur-char (puz-grid-at-index (+ index len-so-far) grid ))
+
+      ;;(print (message "%c" cur-char))
+      (setq reached (puz-is-blacksquare cur-char))
+      (incf len-so-far)
+      (incf cur-col))
+    (- len-so-far 1)
+    ))
+
 (defvar puz-header-spec
       '((cksum_gbl u16r)
 	(across_down str 11)
@@ -81,6 +133,7 @@
 	(setf (crossword-info-clues puz-info) (cons (funcall puz--read-and-inc) (crossword-info-clues puz-info)))))
     (setf (crossword-info-clues puz-info) (nreverse (crossword-info-clues puz-info)))
     ;; (print (crossword-info-clues puz-info))
+
     puz-info
     ))
 
@@ -157,6 +210,24 @@
     (other-window 1)
     (use-local-map puz-mode-map)
     ))
+
+;; test stuff below
+
+(defun puz-test(index)
+  "Test."
+  (let* ((puz-info   (puz-parse "test.puz"))
+	 (len (length (crossword-info-fill puz-info)))
+	 (i 0))
+    ;; try numbering stuff
+
+    (puz-length-across index (crossword-info-fill puz-info) (crossword-info-width puz-info))
+
+
+
+  ))
+
+(puz-test 12)
+(puz-test 26)
 ;;(lookup-key (current-global-map) (kbd "M-b "))
 
 (provide 'puz-solver)
