@@ -2,13 +2,15 @@
 ;; - modern-cpp-font-lock.el
 ;; - evil
 ;; - ctags-exuberant
-;; Prevent the cursor from blinking
 
+;;; Code:
 
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
 (add-to-list 'package-archives
              '("MELPA Stable" . "http://stable.melpa.org/packages/") t)
+(add-to-list 'load-path "~/.emacs.d/lisp/")
+
 (package-initialize)
 (package-refresh-contents)
 (package-install 'helm)
@@ -91,10 +93,6 @@
 
 (define-key ctl-x-4-map "t" 'toggle-window-split)
 
-
-;; toggle window split
-(global-set-key (kbd "C-|") 'toggle-window-split)
-
 ;; default to even horizontal split
 (defadvice split-window-horizontally (after rebalance-windows activate)
   (balance-windows))
@@ -108,7 +106,7 @@
   (windmove-default-keybindings))
 
 ;; shared copy paste
-(setq x-select-enable-clipboard t)
+(setq select-enable-clipboard t)
 
 ;; recentf stuff
 (require 'recentf)
@@ -303,13 +301,6 @@
 
 ;; (add-hook 'c++-mode-hook 'rtags-start-process-unless-running)
 
-;; cruise specific
-;; Create C++ style for Cruise
-(c-add-style "cruise" '("linux" (indent-tabs-mode . nil)
-                        (c-basic-offset . 4)
-                        (c-offsets-alist (innamespace . 0))))
-(setq c-default-style "cruise")
-
 ;; Enable xml-mode for ROS launch files
 (add-to-list 'auto-mode-alist '("\\.launch\\'" . nxml-mode))
 
@@ -344,6 +335,23 @@
   (setq embark-github-url (concat embark-github-base embark-github-relative-filepath "#L" embark-github-line-num))
   (browse-url embark-github-url)
 )
+
+;; scroll up and down with C-z and C-q
+(defalias 'scroll-ahead 'scroll-up)
+(defalias 'scroll-behind 'scroll-down)
+(defun scroll-n-lines-ahead (&optional n)
+  "Scroll ahead N lines (1 by default)"
+  (interactive "p")
+  (scroll-ahead n))
+(defun scroll-n-lines-behind (&optional n)
+  "Scroll behind N lines (1 by default)"
+  (interactive "p")
+  (scroll-behind n))
+(global-set-key "\C-q" 'scroll-n-lines-ahead)
+(global-set-key "\C-z" 'scroll-n-lines-behind)
+
+(require 'bindat)
+
 
 (provide '.emacs)
 ;;; .emacs ends here

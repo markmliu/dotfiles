@@ -36,6 +36,8 @@
 (defvar puz--read-and-inc nil
   "Used to store a closure for reading and incrementing.")
 
+(cl-defstruct crossword-info header solution fill height width title author copyright clues)
+
 (defun puz-test(filePath)
   "Test for running puz stuff."
   (interactive "fFile name: ")
@@ -48,7 +50,8 @@
 	(width 0)
 	(title "")
 	(author "")
-	(copyright ""))
+	(copyright "")
+	(clues nil))
     (setq header (bindat-unpack puz-header-spec puz-content))
     (setq current-pos (bindat-length puz-header-spec header))
     (setq height (cdr (assoc 'height header)))
@@ -85,9 +88,15 @@
     (setq author (funcall puz--read-and-inc))
     (setq copyright (funcall puz--read-and-inc))
 
-    (print title)
-    (print author)
-    (print copyright)
+    ;; (print title)
+    ;; (print author)
+    ;; (print copyright)
+    (let ((numclues (cdr (assoc 'numclues header))))
+      (dotimes (i numclues)
+	(setq clues (cons (funcall puz--read-and-inc) clues))))
+    (setq clues (nreverse clues))
+    (print clues)
+
     ))
 
 
