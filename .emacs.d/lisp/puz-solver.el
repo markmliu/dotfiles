@@ -42,31 +42,25 @@
   "Test for running puz stuff."
   (interactive "fFile name: ")
   (let ((puz-content (puz-parse-file filePath))
-	(header nil)
-	(solution nil)
-	(fill nil)
 	(current-pos 0)
-	(height 0)
-	(width 0)
-	(title "")
-	(author "")
-	(copyright "")
-	(clues nil))
-    (setq header (bindat-unpack puz-header-spec puz-content))
-    (setq current-pos (bindat-length puz-header-spec header))
-    (setq height (cdr (assoc 'height header)))
-    (setq width (cdr (assoc 'width header)))
-    (let ((solution-spec (list (list 'raw 'str (* height width)))))
+	(puz-info (make-crossword-info :header nil :solution nil :fill nil :height 0 :width 0 :title "" :author "" :copyright "" :clues nil)))
+    (setf (crossword-info-header puz-info) (bindat-unpack puz-header-spec puz-content))
+    (setq current-pos (bindat-length puz-header-spec (crossword-info-header puz-info)))
+    (setf (crossword-info-height puz-info) (cdr (assoc 'height (crossword-info-header puz-info))))
+    (setf (crossword-info-width puz-info) (cdr (assoc 'width (crossword-info-header puz-info))))
+    (let ((solution-spec (list (list 'raw 'str (* (crossword-info-height puz-info) (crossword-info-width puz-info))))))
       ;; read the solution and advance current-pos
-      (setq solution (bindat-unpack solution-spec puz-content current-pos))
-      (incf current-pos (* height width ))
+      (setf (crossword-info-solution puz-info) (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
+      ;; (setf (crossword-info-solution puz-info) (bindat-unpack solution-spec puz-content current-pos))
+      (incf current-pos (* (crossword-info-height puz-info) (crossword-info-width puz-info)))
       ;; read the fill and advance current-pos
-      (setq fill (bindat-unpack solution-spec puz-content current-pos))
-      (incf current-pos (* height width ))
+      (setf (crossword-info-fill puz-info) (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
+      ;; (setf (crossword-info-fill puz-info) (bindat-unpack solution-spec puz-content current-pos))
+      (incf current-pos (* (crossword-info-height puz-info) (crossword-info-width puz-info)))
       )
 
-    (print solution)
-    (print fill)
+    (print (crossword-info-solution puz-info))
+    (print (crossword-info-fill puz-info))
     ;; solution stored in solution.raw
     ;; fill stored in fill.raw
 
@@ -84,20 +78,23 @@
 				string_so_far
 				)))
 
-    (setq title (funcall puz--read-and-inc))
-    (setq author (funcall puz--read-and-inc))
-    (setq copyright (funcall puz--read-and-inc))
+    (setf (crossword-info-title puz-info) (funcall puz--read-and-inc))
+    (setf (crossword-info-author puz-info) (funcall puz--read-and-inc))
+    (setf (crossword-info-copyright puz-info) (funcall puz--read-and-inc))
 
     ;; (print title)
     ;; (print author)
     ;; (print copyright)
-    (let ((numclues (cdr (assoc 'numclues header))))
+    (let ((numclues (cdr (assoc 'numclues (crossword-info-header puz-info)))))
       (dotimes (i numclues)
-	(setq clues (cons (funcall puz--read-and-inc) clues))))
-    (setq clues (nreverse clues))
-    (print clues)
-
+	(setf (crossword-info-clues puz-info) (cons (funcall puz--read-and-inc) (crossword-info-clues puz-info)))))
+    (setf (crossword-info-clues puz-info) (nreverse (crossword-info-clues puz-info)))
+    ;; (print (crossword-info-clues puz-info))
+    puz-info
     ))
+
+;; (setq testvar (puz-test "test.puz"))
+;; (crossword-info-solution testvar)
 
 
 
