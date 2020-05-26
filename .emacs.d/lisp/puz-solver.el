@@ -41,20 +41,48 @@
 
 (defun puz-length-across (index grid width)
   "Compute length of an across clue starting from INDEX for GRID of WIDTH."
-  (let ((len-so-far 0) ;length of clue
-	(cur-col (puz-col index width))
-	(cur-char nil)
-	(reached nil)); whether we've reached a black square yet)
-    (print grid)
-    (while (and (<= cur-col width) (not reached))
-      (setq cur-char (puz-grid-at-index (+ index len-so-far) grid ))
+  (if (>= index (length grid))
+      0 ; early return if we happen to index too far
+    (let ((len-so-far 0) ;length of clue
+	  (cur-col (puz-col index width))
+	  (cur-char nil)
+	  (reached nil)); whether we've reached a black square yet)
+      (print grid)
+      (while (and (< cur-col width) (not reached))
+	(setq cur-char (puz-grid-at-index (+ index len-so-far) grid ))
 
-      ;;(print (message "%c" cur-char))
-      (setq reached (puz-is-blacksquare cur-char))
-      (incf len-so-far)
-      (incf cur-col))
-    (- len-so-far 1)
-    ))
+	;;(print (message "%c" cur-char))
+	(setq reached (puz-is-blacksquare cur-char))
+	(incf len-so-far)
+	(incf cur-col))
+      ;; two options, either ran out of space or ran into terminating block
+      (if reached
+	  (- len-so-far 1)
+	len-so-far)
+      )))
+
+(defun puz--length-of-blacksquares-across (index grid width)
+  "Compute number of continuous black squares from INDEX for GRID of WIDTH.
+Assumes that index is the start of a section rather than the middle."
+  (if (>= index (length grid))
+      0
+    (let ((len-so-far 0) ;length of black square section
+	  (cur-col (puz-col index width))
+	  (cur-char nil)
+	  (reached nil)); whether we've reached a non-black square yet)
+      (print grid)
+      (while (and (< cur-col width) (not reached))
+	(setq cur-char (puz-grid-at-index (+ index len-so-far) grid ))
+
+	;;(print (message "%c" cur-char))
+	(setq reached (not (puz-is-blacksquare cur-char)))
+	(incf len-so-far)
+	(incf cur-col))
+      (if reached
+	  (- len-so-far 1)
+	len-so-far)
+      )))
+
 
 (defvar puz-header-spec
       '((cksum_gbl u16r)
@@ -83,43 +111,116 @@
 (defvar puz--read-and-inc nil
   "Used to store a closure for reading and incrementing.")
 
-(cl-defstruct crossword-info header solution fill height width title author copyright clues)
+(cl-defstruct clues-info ; info about set of clues - one for across and one for down.
+  starts    ; start indexes for clues
+  lengths   ; lengths for clues
+  )
+
+(cl-defstruct crossword-info
+  header            ; crossword header
+  solution          ; crossword grid - filled in with solution
+  fill              ; crossword grid - contains whatever progress has been made
+  height            ; height of grid
+  width             ; width of grid
+  title             ;
+  author            ;
+  copyright         ;
+  clues             ; raw clues - need to be numbered
+  across            ; info about across clue
+  down              ; info about down clues
+  )
+
+(defvar puz-info nil
+  "Used to store info about the puz file.")
+(if puz-info nil
+  (setq puz-info (make-crossword-info
+		  :header nil
+		  :solution nil
+		  :fill nil
+		  :height 0
+		  :width 0
+		  :title ""
+		  :author ""
+		  :copyright ""
+		  :clues nil
+		  :across (make-clues-info
+			   :starts nil
+			   :lengths nil)
+		  :down (make-clues-info
+			 :starts nil
+			 :lengths nil))))
+
+
+(defun crossword--across-info-from-grid (grid width)
+  "Get info about across clues from GRID with WIDTH."
+  (let ((len (length grid))
+	(i 0)
+	(across (make-clues-info
+		 :starts '()
+		 :lengths '())))
+    ; find the first non-black square
+    (while (puz-is-blacksquare (puz-grid-at-index i grid))
+      (incf i)
+      )
+    (while (< i len)
+      (let* ((clue-length (puz-length-across i grid width))
+	     (black-squares-length (puz--length-of-blacksquares-across
+				    (+ i clue-length)
+				    grid
+				    width)))
+
+	(if (eq 0 clue-length)
+	    (error (format "0 length clue at index %d after finding %d clues where char is %c"
+			   i
+			   (length (clues-info-lengths across))
+			   (puz-grid-at-index i grid)
+			   )))
+
+	(setf (clues-info-starts across)
+	      (cons i (clues-info-starts across)))
+	(print i)
+	(incf i (+ clue-length black-squares-length))))
+    (setf (clues-info-starts across)
+	  (nreverse (clues-info-starts across)))
+    across
+    ))
+
 
 (defun puz-parse (filePath)
   "Pull all crossword info out of .puz file at FILEPATH."
   (let ((puz-content (puz-get-bytestring filePath))
-	(current-pos 0)
-	(puz-info (make-crossword-info :header nil :solution nil :fill nil :height 0 :width 0 :title "" :author "" :copyright "" :clues nil)))
+	(current-pos 0))
     (setf (crossword-info-header puz-info) (bindat-unpack puz-header-spec puz-content))
     (setq current-pos (bindat-length puz-header-spec (crossword-info-header puz-info)))
     (setf (crossword-info-height puz-info) (cdr (assoc 'height (crossword-info-header puz-info))))
     (setf (crossword-info-width puz-info) (cdr (assoc 'width (crossword-info-header puz-info))))
     (let ((solution-spec (list (list 'raw 'str (* (crossword-info-height puz-info) (crossword-info-width puz-info))))))
       ;; read the solution and advance current-pos
-      (setf (crossword-info-solution puz-info) (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
-      ;; (setf (crossword-info-solution puz-info) (bindat-unpack solution-spec puz-content current-pos))
+      (setf (crossword-info-solution puz-info)
+	    (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
       (incf current-pos (* (crossword-info-height puz-info) (crossword-info-width puz-info)))
       ;; read the fill and advance current-pos
-      (setf (crossword-info-fill puz-info) (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
-      ;; (setf (crossword-info-fill puz-info) (bindat-unpack solution-spec puz-content current-pos))
+      (setf (crossword-info-fill puz-info)
+	    (cdr (assoc 'raw (bindat-unpack solution-spec puz-content current-pos))))
       (incf current-pos (* (crossword-info-height puz-info) (crossword-info-width puz-info)))
       )
 
     ;; (print (crossword-info-solution puz-info))
     ;; (print (crossword-info-fill puz-info))
-    (setq puz--read-and-inc (lambda ()
-			      (let ((next_null_pos current-pos)
-				    (string_so_far ""))
-				(while (not (eq
-					     (aref (substring puz-content next_null_pos (+ 1 next_null_pos)) 0)
-					     0))
-				  (setq string_so_far
-					(concat string_so_far
-						(substring puz-content next_null_pos (+ 1 next_null_pos))))
-				  (incf next_null_pos 1))
-				(setq current-pos (+ next_null_pos 1))
-				string_so_far
-				)))
+    (setq puz--read-and-inc
+	  (lambda ()
+	    (let ((next_null_pos current-pos)
+		  (string_so_far ""))
+	      (while (not (eq
+			   (aref (substring puz-content next_null_pos (+ 1 next_null_pos)) 0)
+			   0))
+		(setq string_so_far
+		      (concat string_so_far
+			      (substring puz-content next_null_pos (+ 1 next_null_pos))))
+		(incf next_null_pos 1))
+	      (setq current-pos (+ next_null_pos 1))
+	      string_so_far
+	      )))
 
     (setf (crossword-info-title puz-info) (funcall puz--read-and-inc))
     (setf (crossword-info-author puz-info) (funcall puz--read-and-inc))
@@ -132,13 +233,13 @@
       (dotimes (i numclues)
 	(setf (crossword-info-clues puz-info) (cons (funcall puz--read-and-inc) (crossword-info-clues puz-info)))))
     (setf (crossword-info-clues puz-info) (nreverse (crossword-info-clues puz-info)))
-    ;; (print (crossword-info-clues puz-info))
 
+    (setf (crossword-info-across puz-info)
+	  (crossword--across-info-from-grid
+	   (crossword-info-fill puz-info)
+	   (crossword-info-width puz-info)))
     puz-info
     ))
-
-(setq testvar (puz-parse "test.puz"))
-(crossword-info-fill testvar)
 
 (defun puz-insert-fill (fill height width)
   "Insert FILL into buffer, assuming cursor is at top of buffer and FILL is of size HEIGHT * WIDTH."
@@ -213,21 +314,17 @@
 
 ;; test stuff below
 
-(defun puz-test(index)
+(defun puz-test()
   "Test."
-  (let* ((puz-info   (puz-parse "test.puz"))
-	 (len (length (crossword-info-fill puz-info)))
-	 (i 0))
-    ;; try numbering stuff
-
-    (puz-length-across index (crossword-info-fill puz-info) (crossword-info-width puz-info))
-
-
-
+  (let* ((puz-info   (puz-parse "test.puz")))
+    (print (clues-info-starts (crossword-info-across puz-info)))
+    ;; (print (crossword-info-across puz-info))
+    ;; (puz-length-across 12
+    ;; 		       (crossword-info-fill puz-info)
+    ;; 		       (crossword-info-width puz-info))
   ))
 
-(puz-test 12)
-(puz-test 26)
+(puz-test)
 ;;(lookup-key (current-global-map) (kbd "M-b "))
 
 (provide 'puz-solver)
