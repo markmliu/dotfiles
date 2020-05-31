@@ -262,18 +262,24 @@ Assumes that index is the start of a section rather than the middle."
 (defun puz-forward-word ()
   "In puz-solving buffer, move cursor forward to next valid word."
   (interactive)
-  (while (not (eq (char-after (point)) ?.))
+  (while (and (not (eq (char-after (point)) ?.)) (not (eq (point) (line-end-position))))
     (forward-char))
-  (while (eq (char-after (point)) ?.)
-    (forward-char)))
+  (while (and (eq (char-after (point)) ?.) (not (eq (point) (line-end-position))))
+    (forward-char))
+  (if (eq (point) (line-end-position))
+      (forward-char))
+  )
 
 (defun puz-backward-word ()
   "In puz-solving buffer, move cursor backward to next valid word."
   (interactive)
-  (while (not (eq (char-before (point)) ?.))
+  (while (and (not (eq (char-before (point)) ?.)) (not (eq (point) (line-beginning-position))))
     (backward-char))
-  (while (eq (char-before (point)) ?.)
-    (backward-char)))
+  (while (and (eq (char-before (point)) ?.) (not (eq (point) (line-beginning-position))))
+    (backward-char))
+  (if (eq (point) (line-beginning-position))
+      (backward-char))
+  )
 
 (defvar puz-mode-map nil
   "Keymap for puz mode.")
