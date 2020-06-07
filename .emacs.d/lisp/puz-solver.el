@@ -18,10 +18,6 @@
   "Compute (ROW . COLUMN) from cursor position."
   (cons (- (current-line) 1) (current-column) ))
 
-(defun puz-cursor-index (width)
-  "Compute index from cursor position for grid of WIDTH."
-  (+ (* (current-line) width) (current-column)))
-
 (defun puz-col (index width)
   "Compute column, given INDEX into fill and WIDTH."
   (mod index width))
@@ -149,6 +145,13 @@ Assumes that index is the start of a section rather than the middle."
 		  :down (make-clues-info
 			 :starts nil
 			 :lengths nil))))
+
+(defun puz-cursor-index ()
+  "Compute index from cursor position for grid of WIDTH."
+  (interactive)
+  (let (width) (crossword-info-width puz-info)
+       (+ (* (current-line) width) (current-column))
+       ))
 
 
 (defun crossword--across-info-from-grid (grid width)
@@ -322,13 +325,13 @@ Assumes that index is the start of a section rather than the middle."
 
 (defun puz-test()
   "Test."
-  (let* ((puz-info   (puz-parse "test.puz")))
-    (print (clues-info-starts (crossword-info-across puz-info)))
+  (puz-parse "test.puz")
+  (print (clues-info-starts (crossword-info-across puz-info)))
     ;; (print (crossword-info-across puz-info))
     ;; (puz-length-across 12
     ;; 		       (crossword-info-fill puz-info)
     ;; 		       (crossword-info-width puz-info))
-  ))
+  )
 
 (puz-test)
 ;;(lookup-key (current-global-map) (kbd "M-b "))
