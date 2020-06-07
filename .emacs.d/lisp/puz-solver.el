@@ -6,7 +6,7 @@
 
 (defun current-line ()
   "Return line number containing point."
-  (let ((result 1)) ;Emacs counts starting from 1
+  (let ((result 0))
     (save-excursion
       (beginning-of-line)
       (while (not (bobp))
@@ -16,7 +16,7 @@
 
 (defun puz-cursor-coords ()
   "Compute (ROW . COLUMN) from cursor position."
-  (cons (- (current-line) 1) (current-column) ))
+  (cons (current-line) (current-column) ))
 
 (defun puz-col (index width)
   "Compute column, given INDEX into fill and WIDTH."
@@ -146,12 +146,22 @@ Assumes that index is the start of a section rather than the middle."
 			 :starts nil
 			 :lengths nil))))
 
-(defun puz-cursor-index ()
+(defun puz-index-at-cursor ()
   "Compute index from cursor position for grid of WIDTH."
   (interactive)
-  (let (width) (crossword-info-width puz-info)
-       (+ (* (current-line) width) (current-column))
-       ))
+  (let ((width (crossword-info-width puz-info)))
+    (print (+ (* (current-line) width) (current-column)))
+    ))
+
+(defun puz-across-at-cursor ()
+  "Index of across clue at cursor."
+  (interactive)
+  (let ((index (puz-index-at-cursor))
+	(across-starts (clues-info-starts (crossword-info-across puz-info)))
+	(cur 0))
+    (while (< (aref across-starts cur) index)
+      (incf cur))
+    (- cur 1)))
 
 
 (defun crossword--across-info-from-grid (grid width)
@@ -184,7 +194,7 @@ Assumes that index is the start of a section rather than the middle."
 	(print i)
 	(incf i (+ clue-length black-squares-length))))
     (setf (clues-info-starts across)
-	  (nreverse (clues-info-starts across)))
+	  (vconcat (nreverse (clues-info-starts across))))
     across
     ))
 
