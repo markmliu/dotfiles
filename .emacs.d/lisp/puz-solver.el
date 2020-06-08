@@ -154,14 +154,23 @@ Assumes that index is the start of a section rather than the middle."
     ))
 
 (defun puz-across-at-cursor ()
-  "Index of across clue at cursor."
+  "Index of across clue at cursor (one-indexed and not zero)."
   (interactive)
   (let ((index (puz-index-at-cursor))
 	(across-starts (clues-info-starts (crossword-info-across puz-info)))
 	(cur 0))
-    (while (< (aref across-starts cur) index)
+    (while (<= (aref across-starts cur) index)
       (incf cur))
-    (- cur 1)))
+    (print cur)
+    (print (aref (vconcat (crossword-info-clues puz-info)) (- cur 1)))))
+
+(defvar puz--show-across-or-down t
+  "If true, shows across clues.  If false, shows downs.")
+
+
+;; (add-hook 'post-command-hook 'puz-across-at-cursor :local)
+;; TODO: put puz-across-at-cursor into some hook. but this hook should
+;; allow displaying either across or down clues
 
 
 (defun crossword--across-info-from-grid (grid width)
