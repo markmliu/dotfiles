@@ -326,7 +326,7 @@ Assumes that index is the start of a section rather than the middle."
 (defun puz-mode()
   "Create a new buffer with graphical view of .puz file at FILEPATH."
   (kill-all-local-variables)
-  (setq major-mode 'puz-mode
+  (setq major-mode 'puz-mode)
   (setq mode-name "Crossword Solving")
   (let ((puz-info (puz-parse-current-file))
 	(grid-buffer (generate-new-buffer "*Grid*"))
@@ -348,17 +348,17 @@ Assumes that index is the start of a section rather than the middle."
 
 ;; test stuff below
 
-(defun puz-test()
-  "Test."
-  (puz-parse "test.puz")
-  (print (clues-info-starts (crossword-info-across puz-info)))
-    ;; (print (crossword-info-across puz-info))
-    ;; (puz-length-across 12
-    ;; 		       (crossword-info-fill puz-info)
-    ;; 		       (crossword-info-width puz-info))
-  )
+;; (defun puz-test()
+;;   "Test."
+;;   (puz-parse "test.puz")
+;;   (print (clues-info-starts (crossword-info-across puz-info)))
+;;     ;; (print (crossword-info-across puz-info))
+;;     ;; (puz-length-across 12
+;;     ;; 		       (crossword-info-fill puz-info)
+;;     ;; 		       (crossword-info-width puz-info))
+;;   )
 
-(puz-test)
+;; (puz-test)
 ;;(lookup-key (current-global-map) (kbd "M-b "))
 
 (provide 'puz)

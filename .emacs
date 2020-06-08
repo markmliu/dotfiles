@@ -352,6 +352,7 @@
 
 (require 'bindat)
 
+(require 'puz)
 (add-to-list 'auto-mode-alist '("\\.puz\\'" . puz-mode))
 
 (provide '.emacs)
