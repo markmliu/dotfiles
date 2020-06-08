@@ -172,6 +172,8 @@ Assumes that index is the start of a section rather than the middle."
 ;; TODO: put puz-across-at-cursor into some hook. but this hook should
 ;; allow displaying either across or down clues
 
+(defvar puz-mode-hook nil
+  "*List of functions to call when entering puz-mode.")
 
 (defun crossword--across-info-from-grid (grid width)
   "Get info about across clues from GRID with WIDTH."
@@ -207,6 +209,9 @@ Assumes that index is the start of a section rather than the middle."
     across
     ))
 
+(defun puz-parse-current-file ()
+  "Call puz-parse on currently open file."
+  (puz-parse (buffer-file-name)))
 
 (defun puz-parse (filePath)
   "Pull all crossword info out of .puz file at FILEPATH."
@@ -318,12 +323,12 @@ Assumes that index is the start of a section rather than the middle."
       (setq equivs (cdr equivs))))
   )
 
-(defun puz-mode(filePath)
+(defun puz-mode()
   "Create a new buffer with graphical view of .puz file at FILEPATH."
-  (interactive "fFile name: ")
   (kill-all-local-variables)
+  (setq major-mode 'puz-mode
   (setq mode-name "Crossword Solving")
-  (let ((puz-info (puz-parse filePath))
+  (let ((puz-info (puz-parse-current-file))
 	(grid-buffer (generate-new-buffer "*Grid*"))
 	(clues-buffer (generate-new-buffer "*Clues*")))
 
@@ -338,6 +343,7 @@ Assumes that index is the start of a section rather than the middle."
     (puz-insert-clues (crossword-info-clues puz-info))
     (other-window 1)
     (use-local-map puz-mode-map)
+    (run-hooks 'puz-mode-hook)
     ))
 
 ;; test stuff below
@@ -355,5 +361,5 @@ Assumes that index is the start of a section rather than the middle."
 (puz-test)
 ;;(lookup-key (current-global-map) (kbd "M-b "))
 
-(provide 'puz-solver)
-;;; puz-solver.el ends here
+(provide 'puz)
+;;; puz.el ends here
