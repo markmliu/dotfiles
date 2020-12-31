@@ -143,3 +143,9 @@ PS1="\[\${__hi_prompt_color}\]\${__hi_prompt_text}\[${__hi_NOCOLOR}\]${PS1}" #!>
 # Set the default values for the text of the hi prompt. Change these if you like. #!>>HI<<!#
 __hi_on_prompt="[hi on] " #!>>HI<<!#
 __hi_off_prompt="[hi off]" #!>>HI<<!#
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
